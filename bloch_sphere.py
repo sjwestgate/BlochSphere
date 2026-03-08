@@ -9,36 +9,6 @@ from qutip import *
 from scipy import *
 from numpy import *
 
-def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
-    # operators and the hamiltonian
-    sx = sigmax(); sy = sigmay(); sz = sigmaz(); sm = sigmam()
-    H = w * (cos(theta) * sz + sin(theta) * sx)
-    # collapse operators
-    c_op_list = []
-    n_th = 0.5 # temperature
-    rate = gamma1 * (n_th + 1)
-    if rate > 0.0: c_op_list.append(sqrt(rate) * sm)
-    rate = gamma1 * n_th
-    if rate > 0.0: c_op_list.append(sqrt(rate) * sm.dag())
-    rate = gamma2
-    if rate > 0.0: c_op_list.append(sqrt(rate) * sz)
-
-
-    # evolve and calculate expectation values
-    output = mesolve(H, psi0, tlist, c_op_list, [sx, sy, sz])  
-    return output.expect[0], output.expect[1], output.expect[2]
-
-
-def rabi_osc(gamma, omega, omega_21, t):
-    rabi_frequency = sqrt(gamma ** 2 + (omega - omega_21) ** 2 / 4)
-    f = 1j * (omega - omega_21) / 2
-    c1 = (exp(f * t) * cos(rabi_frequency * t) - (1j * (omega-omega_21) * t 
-         / (2*rabi_frequency)) * exp(f * t) * sin(rabi_frequency * t))
-    c2 = (-1j * gamma / rabi_frequency) * exp(-f * t) * sin(rabi_frequency * t)
-    psi = c1 * basis(2, 0) + c2 * basis(2, 1)
-    return psi
-
-
 def simulate_rabi_bloch(gamma, omega_drive, omega21, psi0, tlist,
                         gamma1=0.0, gamma2=0.0):
     sx_op = sigmax()
@@ -48,12 +18,12 @@ def simulate_rabi_bloch(gamma, omega_drive, omega21, psi0, tlist,
     # Detuning
     delta = omega_drive - omega21
 
-    # Static Hamiltonian part (rotating-frame form)
-    H0 = delta/2 * sz_op
 
     # Drive term
-    H1 = gamma * sx_op
-    H = [H0, [H1, lambda t, args: cos(omega_drive * t)]]
+    delta = omega_drive - omega21
+
+    H = (delta/2)*sz_op + (gamma/2)*sx_op
+
 
     # Collapse operators
     c_ops = []
@@ -75,33 +45,18 @@ def simulate_rabi_bloch(gamma, omega_drive, omega21, psi0, tlist,
 
     return result.expect
     
-#gamma = 0.1
-#omega = 10
-#omega21 = 9
-
-#tlist = linspace(0, 50, 400)
-
-#sx = []
-#sy = []
-#sz = []
-
-#for t in tlist:
- #   psi = rabi_osc(gamma, omega, omega21, t)
-
-  #  sx.append(expect(sigmax(), psi))
-   # sy.append(expect(sigmay(), psi))
-    #sz.append(expect(sigmaz(), psi))
-
-#sx = array(sx)
-#sy = array(sy)
-#sz = array(sz)
+omega_d = 2.5
+omega_res = 2.5
+gam=1
 
 sx, sy, sz = simulate_rabi_bloch(
-    gamma=10,
-    omega_drive=2.5,
-    omega21=2.5,
+    gamma=gam,
+    omega_drive=omega_d,
+    omega21=omega_res,
     psi0=basis(2,0),
-    tlist=linspace(0,2,400)
+    tlist=linspace(0,20,200),
+    gamma1 = 0.2,
+    gamma2 = 0.05
 )
 
 from pylab import *
@@ -118,6 +73,13 @@ def animate(i):
 
     #sphere.add_vectors([np.sin(theta), 0, np.cos(theta)])
     sphere.add_points([sx[:i+1], sy[:i+1], sz[:i+1]])
+    Omega_R = gam
+    Delta = omega_d - omega_res
+
+    axis = np.array([Omega_R, 0, Delta])
+    axis = axis / np.linalg.norm(axis)
+
+    sphere.add_vectors(axis)
     sphere.make_sphere()
 
     return []
@@ -130,6 +92,13 @@ ani = animation.FuncAnimation(
     blit=False
 )
 
+
 ani.save("bloch_sphere.gif", writer="pillow", fps=20)
 
 plt.close(fig)
+
+tlist = linspace(0,20,200)
+plt.plot(tlist,sz)
+plt.xlabel('Time /s')
+plt.ylabel('S_z')
+plt.show()
