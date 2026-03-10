@@ -18,10 +18,6 @@ def simulate_rabi_bloch(gamma, omega_drive, omega21, psi0, tlist,
     # Detuning
     delta = omega_drive - omega21
 
-
-    # Drive term
-    delta = omega_drive - omega21
-
     H = (delta/2)*sz_op + (gamma/2)*sx_op
 
 
@@ -45,18 +41,18 @@ def simulate_rabi_bloch(gamma, omega_drive, omega21, psi0, tlist,
 
     return result.expect
     
-omega_d = 2.5
-omega_res = 2.5
-gam=1
+omega_d = 2  #Drive frequency, Hz
+omega_res = 2.5   #Resonant frequency, Hz
+gam=1   #Rabi coupling strength
 
 sx, sy, sz = simulate_rabi_bloch(
     gamma=gam,
     omega_drive=omega_d,
     omega21=omega_res,
-    psi0=basis(2,0),
+    psi0=basis(2,1),
     tlist=linspace(0,20,200),
-    gamma1 = 0.2,
-    gamma2 = 0.05
+    gamma1=0.2,  # change these gammas to introduce detuning
+    gamma2=0.0
 )
 
 from pylab import *
@@ -94,11 +90,18 @@ ani = animation.FuncAnimation(
 
 
 ani.save("bloch_sphere.gif", writer="pillow", fps=20)
+# idk it doesnt display the animation directly but does save it onto your laptop
 
 plt.close(fig)
 
-tlist = linspace(0,20,200)
+tlist = linspace(0,20,200)  # This will show the projection of the Bloch vector onto the z axis
 plt.plot(tlist,sz)
 plt.xlabel('Time /s')
 plt.ylabel('S_z')
+plt.show()
+
+P1 = 0.5 * (1-sz)  # This is the probability of the qubit remaining in the excited state
+plt.plot(tlist,P1)
+plt.xlabel('Time /s')
+plt.ylabel('P1')
 plt.show()
